@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Space_Mono } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/ui/custom-ui/navbar";
+import { RepoProvider } from "@/components/context/RepositoryContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceMono = Space_Mono({
+  variable: "--font-space-mono",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -24,10 +22,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${spaceMono.className}  antialiased`}>
+        <RepoProvider>
+          <div className="flex flex-col items-center w-full">
+            <Navbar />
+            {children}
+          </div>
+        </RepoProvider>
       </body>
     </html>
   );
