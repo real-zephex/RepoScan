@@ -24,7 +24,7 @@ export interface GithubRepoStructure {
 }
 
 const octokit = new Octokit({
-  auth: process.env.GITHUB_TOKEN,
+  auth: process.env.GITHUB_API_KEY,
 });
 
 const RepoStructure = async ({

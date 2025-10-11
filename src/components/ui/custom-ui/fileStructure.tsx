@@ -22,6 +22,12 @@ import {
   Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from "@/components/ui/resizable";
+import MonacoEditor from "./monacoEditor";
 
 interface TreeNode {
   name: string;
@@ -32,7 +38,7 @@ interface TreeNode {
   isOpen?: boolean;
 }
 
-const getFileIcon = (fileName: string) => {
+export const getFileIcon = (fileName: string) => {
   const extension = fileName.toLowerCase().split(".").pop();
   const iconProps = { size: 16, className: "flex-shrink-0" };
 
@@ -102,93 +108,57 @@ const getFolderIcon = (isOpen: boolean) => {
 
 const buildTree = (files: GithubRepoStructure[]): TreeNode[] => {
   const nodeMap = new Map<string, TreeNode>();
-
-  // First pass: create all nodes
-  files.forEach((file) => {
-    const node: TreeNode = {
-      name: file.path.split("/").pop() || file.path,
-      path: file.path,
-      type: file.type === "blob" ? "file" : "folder",
-      children: [],
-      sha: file.type === "blob" ? file.sha : undefined,
-      isOpen: false,
-    };
-    nodeMap.set(file.path, node);
-  });
-
-  // Second pass: build parent-child relationships
   const rootNodes: TreeNode[] = [];
 
+  // Create nodes for all paths (including intermediate folders)
   files.forEach((file) => {
-    const node = nodeMap.get(file.path);
-    if (!node) return;
-
-    const pathParts = file.path.split("/");
-
-    if (pathParts.length === 1) {
-      // Root level item
-      rootNodes.push(node);
-    } else {
-      // Find parent path
-      const parentPath = pathParts.slice(0, -1).join("/");
-      const parentNode = nodeMap.get(parentPath);
-
-      if (parentNode) {
-        parentNode.children.push(node);
-      } else {
-        // Create intermediate parent folders if they don't exist
-        let currentPath = "";
-        for (let i = 0; i < pathParts.length - 1; i++) {
-          const part = pathParts[i];
-          const newPath = currentPath ? `${currentPath}/${part}` : part;
-
-          if (!nodeMap.has(newPath)) {
-            const folderNode: TreeNode = {
-              name: part,
-              path: newPath,
-              type: "folder",
-              children: [],
-              isOpen: false,
-            };
-            nodeMap.set(newPath, folderNode);
-
-            if (i === 0) {
-              rootNodes.push(folderNode);
-            } else {
-              const parentPath = pathParts.slice(0, i).join("/");
-              const parent = nodeMap.get(parentPath);
-              if (parent) {
-                parent.children.push(folderNode);
-              }
-            }
-          }
-          currentPath = newPath;
-        }
-
-        // Now add the current node to its parent
-        const finalParentPath = pathParts.slice(0, -1).join("/");
-        const finalParent = nodeMap.get(finalParentPath);
-        if (finalParent) {
-          finalParent.children.push(node);
-        }
+    const parts = file.path.split("/");
+    let currentPath = "";
+    for (let i = 0; i < parts.length; i++) {
+      const part = parts[i];
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      if (!nodeMap.has(currentPath)) {
+        const isFile = i === parts.length - 1 && file.type === "blob";
+        nodeMap.set(currentPath, {
+          name: part,
+          path: currentPath,
+          type: isFile ? "file" : "folder",
+          children: [],
+          sha: isFile ? file.sha : undefined,
+          isOpen: false,
+        });
+      } else if (i === parts.length - 1 && file.type === "blob") {
+        // Ensure last part reflects file info if previously created as folder
+        const node = nodeMap.get(currentPath)!;
+        node.type = "file";
+        node.sha = file.sha;
       }
     }
   });
 
-  // Sort function
-  const sortNodes = (nodes: TreeNode[]): TreeNode[] => {
-    return nodes
-      .sort((a, b) => {
-        if (a.type !== b.type) {
-          return a.type === "folder" ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name);
-      })
-      .map((node) => ({
-        ...node,
-        children: sortNodes(node.children),
-      }));
-  };
+  // Build parent-child relationships
+  nodeMap.forEach((node, path) => {
+    const parts = path.split("/");
+    if (parts.length === 1) {
+      rootNodes.push(node);
+    } else {
+      const parentPath = parts.slice(0, -1).join("/");
+      const parent = nodeMap.get(parentPath);
+      if (parent) parent.children.push(node);
+    }
+  });
+
+  // Sort nodes: folders first, then files; both alphabetically
+  const sortNodes = (nodes: TreeNode[]): TreeNode[] =>
+    nodes
+      .sort((a, b) =>
+        a.type !== b.type
+          ? a.type === "folder"
+            ? -1
+            : 1
+          : a.name.localeCompare(b.name)
+      )
+      .map((n) => ({ ...n, children: sortNodes(n.children) }));
 
   return sortNodes(rootNodes);
 };
@@ -275,102 +245,6 @@ const FileTreeItem = ({
   );
 };
 
-// File content viewer component
-const FileContentViewer = ({
-  file,
-}: {
-  file: { path: string; content: string };
-}) => {
-  const getLanguageFromPath = (path: string): string => {
-    const extension = path.toLowerCase().split(".").pop();
-    switch (extension) {
-      case "js":
-        return "javascript";
-      case "jsx":
-        return "jsx";
-      case "ts":
-        return "typescript";
-      case "tsx":
-        return "tsx";
-      case "json":
-        return "json";
-      case "md":
-        return "markdown";
-      case "css":
-        return "css";
-      case "html":
-        return "html";
-      case "py":
-        return "python";
-      case "java":
-        return "java";
-      case "cpp":
-      case "c":
-        return "cpp";
-      case "xml":
-        return "xml";
-      case "yml":
-      case "yaml":
-        return "yaml";
-      default:
-        return "text";
-    }
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(file.content);
-  };
-
-  const downloadFile = () => {
-    const blob = new Blob([file.content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.path.split("/").pop() || "file.txt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  return (
-    <div className="flex-1 flex flex-col bg-white border-l border-gray-200 max-h-screen">
-      <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {getFileIcon(file.path)}
-          <span className="text-sm font-medium text-gray-800 truncate">
-            {file.path}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={copyToClipboard}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            title="Copy content"
-          >
-            <Copy size={16} className="text-gray-600" />
-          </button>
-          <button
-            onClick={downloadFile}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            title="Download file"
-          >
-            <Download size={16} className="text-gray-600" />
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-auto">
-        <pre className="p-4 text-sm font-mono leading-relaxed whitespace-pre-wrap break-words">
-          <code className={`language-${getLanguageFromPath(file.path)}`}>
-            {file.content}
-          </code>
-        </pre>
-      </div>
-    </div>
-  );
-};
-
 const FileStructure = () => {
   const { repoStructure, isLoading, currentFile, loadFileContent } =
     useRepoContext();
@@ -422,44 +296,58 @@ const FileStructure = () => {
   }
 
   return (
-    <div className="flex w-full  border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-      {/* File Explorer */}
-      <div className="w-80 border-r border-gray-200 bg-gray-50/50 flex-shrink-0 h-full max-h-dvh overflow-y-auto">
-        <div className="sticky top-0 bg-gray-100 border-b border-gray-200 px-4 py-3">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
-            Explorer
-          </h3>
-        </div>
-
-        <div className="py-2">
-          {treeData.map((node) => (
-            <FileTreeItem
-              key={node.path}
-              node={node}
-              level={0}
-              onToggle={handleToggleFolder}
-              onFileClick={handleFileClick}
-              openFolders={openFolders}
-              selectedFile={selectedFile}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* File Content Viewer */}
-      {currentFile ? (
-        <FileContentViewer file={currentFile} />
-      ) : (
-        <div className="flex-1 flex items-center justify-center bg-white">
-          <div className="text-center">
-            <FileText size={48} className="text-gray-400 mb-4 mx-auto" />
-            <div className="text-lg text-gray-600 mb-2">No file selected</div>
-            <div className="text-sm text-gray-500">
-              Click on a file in the explorer to view its content
+    <div className="w-full  border-gray-200 rounded-lg overflow-hidden shadow-sm">
+      <ResizablePanelGroup direction="horizontal">
+        {/* Explorer panel */}
+        <ResizablePanel
+          defaultSize={25}
+          minSize={15}
+          maxSize={50}
+          className="bg-gray-50/50 h-dvh overflow-y-auto border-r border-gray-200"
+        >
+          <div className="h-full flex flex-col">
+            <div className="sticky top-0 bg-gray-100 border-b border-gray-200 px-4 py-4 z-10">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+                Explorer
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto py-2">
+              {treeData.map((node) => (
+                <FileTreeItem
+                  key={node.path}
+                  node={node}
+                  level={0}
+                  onToggle={handleToggleFolder}
+                  onFileClick={handleFileClick}
+                  openFolders={openFolders}
+                  selectedFile={selectedFile}
+                />
+              ))}
             </div>
           </div>
-        </div>
-      )}
+        </ResizablePanel>
+
+        <ResizableHandle withHandle />
+
+        {/* Content panel */}
+        <ResizablePanel className="h-dvh">
+          {currentFile ? (
+            <MonacoEditor file={currentFile} />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-white">
+              <div className="text-center">
+                <FileText size={48} className="text-gray-400 mb-4 mx-auto" />
+                <div className="text-lg text-gray-600 mb-2">
+                  No file selected
+                </div>
+                <div className="text-sm text-gray-500">
+                  Click on a file in the explorer to view its content
+                </div>
+              </div>
+            </div>
+          )}
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };

@@ -38,11 +38,7 @@ interface RepoContextType {
     url: string,
     branch: string
   ) => Promise<fetchRepoStructureProps>;
-  getFileContent: (
-    owner: string,
-    repo: string,
-    sha: string
-  ) => Promise<getFileContentProps>;
+
   loadFileContent: (path: string, sha: string) => Promise<void>;
 }
 
@@ -73,7 +69,6 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
     setCurrentFile(null);
 
     try {
-      // Extract owner and repo from URL
       const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)(\.git)?$/);
       if (!match) {
         setError("Invalid GitHub repository URL");
@@ -100,32 +95,6 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
       setError(errorMessage);
       setLoading(false);
       return { status: false, data: [] };
-    }
-  };
-
-  const getFileContent = async (
-    owner: string,
-    repo: string,
-    sha: string
-  ): Promise<getFileContentProps> => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const content = await CodeContent({ owner, repo, sha });
-      if (!content.status) {
-        setError(content.message || "Failed to fetch file content");
-        setLoading(false);
-        return { status: false, content: "" };
-      }
-      setLoading(false);
-      return { status: true, content: content.data };
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Unknown error occurred";
-      setError(errorMessage);
-      setLoading(false);
-      return { status: false, content: "" };
     }
   };
 
@@ -173,7 +142,6 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
       setError,
       setCurrentFile,
       fetchRepoStructure,
-      getFileContent,
       loadFileContent,
     }),
     [repoStructure, isLoading, error, currentFile, repoInfo]
