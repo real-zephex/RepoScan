@@ -14,11 +14,6 @@ import React, {
   useMemo,
 } from "react";
 
-interface getFileContentProps {
-  status: boolean;
-  content: string;
-}
-
 interface fetchRepoStructureProps {
   status: boolean;
   data: GithubRepoStructure[];

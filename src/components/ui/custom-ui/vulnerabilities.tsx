@@ -40,36 +40,33 @@ export default function CodeVulnerabilities({
   const cacheKey = useMemo(() => `${path}::${code}`, [code, path]);
   const cacheRef = useRef<Map<string, Issues[]>>(new Map());
 
-  const triggerVulnerabilityAnalysis = useCallback(
-    async (e: React.MouseEvent) => {
-      try {
-        setError("");
-        setIsLoading(true);
+  const triggerVulnerabilityAnalysis = useCallback(async () => {
+    try {
+      setError("");
+      setIsLoading(true);
 
-        const cached = cacheRef.current.get(cacheKey);
-        if (cached) {
-          setVulnerabilities(cached);
-          return;
-        }
-
-        const results = await GroqVulnerabilityScan({ code, filePath: path });
-        if (results.status && Array.isArray(results.issues)) {
-          cacheRef.current.set(cacheKey, results.issues);
-          setVulnerabilities(results.issues);
-        } else {
-          cacheRef.current.set(cacheKey, []);
-          setVulnerabilities([]);
-          if (results.error) setError(results.error);
-        }
-      } catch (error) {
-        console.error("Error during vulnerability analysis:", error);
-        setError("An error occurred during vulnerability analysis.");
-      } finally {
-        setIsLoading(false);
+      const cached = cacheRef.current.get(cacheKey);
+      if (cached) {
+        setVulnerabilities(cached);
+        return;
       }
-    },
-    [code, path, cacheKey]
-  );
+
+      const results = await GroqVulnerabilityScan({ code, filePath: path });
+      if (results.status && Array.isArray(results.issues)) {
+        cacheRef.current.set(cacheKey, results.issues);
+        setVulnerabilities(results.issues);
+      } else {
+        cacheRef.current.set(cacheKey, []);
+        setVulnerabilities([]);
+        if (results.error) setError(results.error);
+      }
+    } catch (error) {
+      console.error("Error during vulnerability analysis:", error);
+      setError("An error occurred during vulnerability analysis.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [code, path, cacheKey]);
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {

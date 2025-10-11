@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Space_Mono } from "next/font/google";
+import { Space_Mono } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/ui/custom-ui/navbar";
 import { RepoProvider } from "@/components/context/RepositoryContext";

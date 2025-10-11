@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import Editor from "@monaco-editor/react";
-import { Copy, Download, Maximize2, Minimize2 } from "lucide-react";
+import type { editor } from "monaco-editor";
+import { Copy, Download } from "lucide-react";
 import { getFileIcon } from "./fileStructure";
 import CodeVulnerabilities from "./vulnerabilities";
 
@@ -90,8 +91,7 @@ const getMonacoLanguage = (path: string): string => {
 };
 
 const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
-  const [isFullscreen, setIsFullscreen] = React.useState(false);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
 
   const language = getMonacoLanguage(file.path);
 
@@ -116,7 +116,10 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
     URL.revokeObjectURL(url);
   };
 
-  const handleEditorDidMount = (editor: any, monaco: any) => {
+  const handleEditorDidMount = (
+    editor: editor.IStandaloneCodeEditor,
+    monaco: typeof import("monaco-editor")
+  ) => {
     editorRef.current = editor;
 
     // Configure Monaco Editor
@@ -158,11 +161,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
 
   return (
     <div
-      className={`flex flex-col bg-white border-l border-gray-200 ${
-        isFullscreen
-          ? "fixed inset-0 z-50 bg-white"
-          : "flex-1 max-h-screen h-full"
-      }`}
+      className={`flex flex-col bg-white border-l border-gray-200 flex-1 max-h-screen h-full`}
     >
       {/* Header */}
       <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center justify-between z-10">
