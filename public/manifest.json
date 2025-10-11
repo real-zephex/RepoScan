@@ -1,0 +1,21 @@
+{
+  "name": "RepoScan",
+  "short_name": "RepoScan",
+  "description": "Scan your repositories for vulnerabilities and generate comprehensive reports.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48 32x32 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}
