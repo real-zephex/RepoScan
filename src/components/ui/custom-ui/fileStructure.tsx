@@ -334,7 +334,7 @@ const FileContentViewer = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white border-l border-gray-200">
+    <div className="flex-1 flex flex-col bg-white border-l border-gray-200 max-h-screen">
       <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {getFileIcon(file.path)}
@@ -422,9 +422,9 @@ const FileStructure = () => {
   }
 
   return (
-    <div className="flex w-full max-h-screen">
+    <div className="flex w-full  border border-gray-200 rounded-lg overflow-hidden shadow-sm">
       {/* File Explorer */}
-      <div className="w-80 border-r border-gray-200 bg-gray-50/50 flex-shrink-0">
+      <div className="w-80 border-r border-gray-200 bg-gray-50/50 flex-shrink-0 h-full max-h-dvh overflow-y-auto">
         <div className="sticky top-0 bg-gray-100 border-b border-gray-200 px-4 py-3">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider">
             Explorer
