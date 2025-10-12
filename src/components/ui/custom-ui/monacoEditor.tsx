@@ -6,6 +6,7 @@ import type { editor } from "monaco-editor";
 import { Copy, Download } from "lucide-react";
 import { getFileIcon } from "./fileStructure";
 import CodeVulnerabilities from "./vulnerabilities";
+import CodeFixer from "./codeFixer";
 
 interface MonacoEditorProps {
   file: { path: string; content: string };
@@ -92,9 +93,9 @@ const getMonacoLanguage = (path: string): string => {
 
 const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-
   const language = getMonacoLanguage(file.path);
 
+  // Function to copy content to clipboard
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(file.content);
@@ -104,6 +105,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
     }
   };
 
+  // Function to download file
   const downloadFile = () => {
     const blob = new Blob([file.content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -116,6 +118,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
     URL.revokeObjectURL(url);
   };
 
+  // Function to configure the editor once it finally mounts
   const handleEditorDidMount = (
     editor: editor.IStandaloneCodeEditor,
     monaco: typeof import("monaco-editor")
@@ -159,6 +162,16 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
     });
   };
 
+  const changeCodeContent = (status: "new" | "old", newCode: string) => {
+    if (editorRef.current) {
+      if (status === "old") {
+        editorRef.current.setValue(file.content);
+        return;
+      }
+      editorRef.current.setValue(newCode);
+    }
+  };
+
   return (
     <div
       className={`flex flex-col bg-white border-l border-gray-200 flex-1 max-h-screen h-full`}
@@ -190,6 +203,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
             <Download size={16} className="text-gray-600" />
           </button>
           <CodeVulnerabilities code={file.content} path={file.path} />
+          <CodeFixer changeCodeContent={changeCodeContent} />
         </div>
       </div>
 

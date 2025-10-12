@@ -12,6 +12,7 @@ import React, {
   useState,
   ReactNode,
   useMemo,
+  useEffect,
 } from "react";
 
 interface fetchRepoStructureProps {
@@ -25,6 +26,8 @@ interface RepoContextType {
   error: string | null;
   currentFile: { path: string; content: string } | null;
   repoInfo: { owner: string; repo: string; branch: string } | null;
+  currentIssues: string[];
+  setCurrentIssues: (issues: string[]) => void;
   setRepoStructure: (structure: GithubRepoStructure[] | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -54,6 +57,7 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
   const [repoStructure, setRepoStructure] = useState<
     GithubRepoStructure[] | null
   >(null);
+  const [currentIssues, setCurrentIssues] = useState<string[]>([]);
 
   const fetchRepoStructure = async (
     url: string,
@@ -101,7 +105,7 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
 
     setLoading(true);
     setError(null);
-
+    setCurrentIssues([]);
     try {
       const content = await CodeContent({
         owner: repoInfo.owner,
@@ -132,6 +136,8 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
       error,
       currentFile,
       repoInfo,
+      currentIssues,
+      setCurrentIssues,
       setRepoStructure,
       setLoading,
       setError,
@@ -139,7 +145,7 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
       fetchRepoStructure,
       loadFileContent,
     }),
-    [repoStructure, isLoading, error, currentFile, repoInfo]
+    [repoStructure, isLoading, error, currentFile, repoInfo, currentIssues]
   );
 
   return (

@@ -24,6 +24,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import GroqVulnerabilityScan, {
   Issues,
 } from "@/lib/models/functions/vulnerabilityScan";
+import { useRepoContext } from "@/components/context/RepositoryContext";
 
 export default function CodeVulnerabilities({
   code,
@@ -35,10 +36,26 @@ export default function CodeVulnerabilities({
   const [error, setError] = useState<string>("");
   const [vulnerabilities, setVulnerabilities] = useState<Issues[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { setCurrentIssues } = useRepoContext();
 
-  // Cache key based on current code and path
   const cacheKey = useMemo(() => `${path}::${code}`, [code, path]);
   const cacheRef = useRef<Map<string, Issues[]>>(new Map());
+
+  function issuesArrayToString(issues: Issues[]): string[] {
+    const stringifiedIssues = issues.map((issues) => {
+      return `Issue Title: ${issues.title.trim()} | CWE ID: ${
+        issues.cwe_id || "N/A"
+      } | Severity: ${issues.severity || "N/A"} | Description: ${
+        issues.cwe_name || "N/A"
+      } | Suggestion: ${issues.suggestion || "N/A"} | Category: ${
+        issues.category || "N/A"
+      } | Code Snippet: ${issues.codeSnippet || "N/A"} | Line Number: ${
+        issues.line != null ? issues.line : "N/A"
+      }
+      `;
+    });
+    return stringifiedIssues.map((issue) => issue.replaceAll("\n", " ").trim());
+  }
 
   const triggerVulnerabilityAnalysis = useCallback(async () => {
     try {
@@ -48,6 +65,7 @@ export default function CodeVulnerabilities({
       const cached = cacheRef.current.get(cacheKey);
       if (cached) {
         setVulnerabilities(cached);
+        setCurrentIssues(issuesArrayToString(cached));
         return;
       }
 
@@ -55,6 +73,7 @@ export default function CodeVulnerabilities({
       if (results.status && Array.isArray(results.issues)) {
         cacheRef.current.set(cacheKey, results.issues);
         setVulnerabilities(results.issues);
+        setCurrentIssues(issuesArrayToString(results.issues));
       } else {
         cacheRef.current.set(cacheKey, []);
         setVulnerabilities([]);
