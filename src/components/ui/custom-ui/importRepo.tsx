@@ -1,6 +1,7 @@
 "use client";
 
 import { useRepoContext } from "@/components/context/RepositoryContext";
+import { useToast } from "@/components/context/ToastContext";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,24 +9,25 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const ImportRepo = () => {
-  const { error, fetchRepoStructure, isLoading } = useRepoContext();
+  const { fetchRepoStructure, isLoading } = useRepoContext();
+  const { showInfo } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
   const [branch, setBranch] = useState("main");
-  const [showError, setShowError] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (showError) setShowError(false);
 
-    if (!repoUrl.trim()) return;
+    if (!repoUrl.trim()) {
+      return;
+    }
+
+    showInfo("Loading Repository", "Fetching repository structure...");
     const result = await fetchRepoStructure(repoUrl, branch);
     if (result.status) {
       setIsModalOpen(false);
       setRepoUrl("");
       setBranch("main");
-    } else {
-      setShowError(true);
     }
   };
 
@@ -73,9 +75,6 @@ const ImportRepo = () => {
                     {isLoading ? "Loading..." : "Import"}
                   </Button>
                 </div>
-                {showError && (
-                  <p className="text-red-500 mt-4  text-xs">{error}</p>
-                )}
               </form>
             </CardContent>
           </Card>

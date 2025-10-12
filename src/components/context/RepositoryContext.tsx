@@ -14,6 +14,7 @@ import React, {
   useMemo,
   useEffect,
 } from "react";
+import { useToast } from "./ToastContext";
 
 interface fetchRepoStructureProps {
   status: boolean;
@@ -58,6 +59,7 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
     GithubRepoStructure[] | null
   >(null);
   const [currentIssues, setCurrentIssues] = useState<string[]>([]);
+  const { showSuccess, showError, showInfo } = useToast();
 
   const fetchRepoStructure = async (
     url: string,
@@ -81,17 +83,25 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
 
       const repoContent = await RepoStructure({ repoUrl: url, branch });
       if (!repoContent.status) {
-        setError(repoContent.message || "Failed to fetch repository structure");
+        const errorMsg =
+          repoContent.message || "Failed to fetch repository structure";
+        setError(errorMsg);
+        showError("Repository Load Failed", errorMsg, true);
         setLoading(false);
         return { status: false, data: [] };
       }
       setRepoStructure(repoContent.data);
+      showSuccess(
+        "Repository Loaded Successfully",
+        `${owner}/${repo} has been loaded successfully`
+      );
       setLoading(false);
       return { status: true, data: repoContent.data };
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
       setError(errorMessage);
+      showError("Repository Error", errorMessage, true);
       setLoading(false);
       return { status: false, data: [] };
     }
@@ -114,17 +124,21 @@ export const RepoProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (!content.status) {
-        setError(content.message || "Failed to fetch file content");
+        const errorMsg = content.message || "Failed to fetch file content";
+        setError(errorMsg);
+        showError("File Load Failed", errorMsg);
         setLoading(false);
         return;
       }
 
       setCurrentFile({ path, content: content.data });
+      showInfo("File Loaded", `Loaded ${path} successfully`);
       setLoading(false);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Unknown error occurred";
       setError(errorMessage);
+      showError("File Load Error", errorMessage);
       setLoading(false);
     }
   };

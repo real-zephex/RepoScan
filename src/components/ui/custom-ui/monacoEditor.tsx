@@ -5,6 +5,7 @@ import Editor from "@monaco-editor/react";
 import type { editor } from "monaco-editor";
 import { Copy, Download } from "lucide-react";
 import { getFileIcon } from "./fileStructure";
+import { useToast } from "@/components/context/ToastContext";
 import CodeVulnerabilities from "./vulnerabilities";
 import CodeFixer from "./codeFixer";
 
@@ -94,28 +95,37 @@ const getMonacoLanguage = (path: string): string => {
 const MonacoEditor: React.FC<MonacoEditorProps> = ({ file }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const language = getMonacoLanguage(file.path);
+  const { showSuccess, showError } = useToast();
 
   // Function to copy content to clipboard
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(file.content);
-      // You could add a toast notification here
+      showSuccess("Content Copied", `${file.path} content copied to clipboard`);
     } catch (err) {
       console.error("Failed to copy content:", err);
+      showError("Copy Failed", "Failed to copy content to clipboard");
     }
   };
 
   // Function to download file
   const downloadFile = () => {
-    const blob = new Blob([file.content], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = file.path.split("/").pop() || "file.txt";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+      const blob = new Blob([file.content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const fileName = file.path.split("/").pop() || "file.txt";
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showSuccess("File Downloaded", `${fileName} has been downloaded`);
+    } catch (err) {
+      console.error("Failed to download file:", err);
+      showError("Download Failed", "Failed to download the file");
+    }
   };
 
   // Function to configure the editor once it finally mounts

@@ -25,6 +25,7 @@ import GroqVulnerabilityScan, {
   Issues,
 } from "@/lib/models/functions/vulnerabilityScan";
 import { useRepoContext } from "@/components/context/RepositoryContext";
+import { useToast } from "@/components/context/ToastContext";
 
 export default function CodeVulnerabilities({
   code,
@@ -37,6 +38,7 @@ export default function CodeVulnerabilities({
   const [vulnerabilities, setVulnerabilities] = useState<Issues[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const { setCurrentIssues } = useRepoContext();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
 
   const cacheKey = useMemo(() => `${path}::${code}`, [code, path]);
   const cacheRef = useRef<Map<string, Issues[]>>(new Map());
@@ -66,6 +68,17 @@ export default function CodeVulnerabilities({
       if (cached) {
         setVulnerabilities(cached);
         setCurrentIssues(issuesArrayToString(cached));
+        if (cached.length === 0) {
+          showSuccess(
+            "Analysis Complete",
+            "No vulnerabilities found (cached result)"
+          );
+        } else {
+          showInfo(
+            "Analysis Complete",
+            `Found ${cached.length} vulnerabilities (cached result)`
+          );
+        }
         return;
       }
 
@@ -74,14 +87,52 @@ export default function CodeVulnerabilities({
         cacheRef.current.set(cacheKey, results.issues);
         setVulnerabilities(results.issues);
         setCurrentIssues(issuesArrayToString(results.issues));
+
+        if (results.issues.length === 0) {
+          showSuccess("Scan Complete", "No vulnerabilities found in this code");
+        } else {
+          const criticalCount = results.issues.filter(
+            (i) => i.severity === "critical"
+          ).length;
+          const highCount = results.issues.filter(
+            (i) => i.severity === "high"
+          ).length;
+          const totalCount = results.issues.length;
+
+          if (criticalCount > 0) {
+            showError(
+              "Critical Vulnerabilities Found",
+              `Found ${criticalCount} critical and ${
+                totalCount - criticalCount
+              } other vulnerabilities`
+            );
+          } else if (highCount > 0) {
+            showWarning(
+              "High Severity Vulnerabilities Found",
+              `Found ${highCount} high severity and ${
+                totalCount - highCount
+              } other vulnerabilities`
+            );
+          } else {
+            showInfo(
+              "Vulnerabilities Found",
+              `Found ${totalCount} vulnerabilities`
+            );
+          }
+        }
       } else {
         cacheRef.current.set(cacheKey, []);
         setVulnerabilities([]);
-        if (results.error) setError(results.error);
+        if (results.error) {
+          setError(results.error);
+          showError("Scan Failed", results.error);
+        }
       }
     } catch (error) {
       console.error("Error during vulnerability analysis:", error);
-      setError("An error occurred during vulnerability analysis.");
+      const errorMessage = "An error occurred during vulnerability analysis.";
+      setError(errorMessage);
+      showError("Analysis Error", errorMessage);
     } finally {
       setIsLoading(false);
     }

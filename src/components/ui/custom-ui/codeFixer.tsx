@@ -4,6 +4,7 @@ import { Sparkles } from "lucide-react";
 import { Button } from "../button";
 import { useState, useRef, useMemo, useCallback } from "react";
 import { useRepoContext } from "@/components/context/RepositoryContext";
+import { useToast } from "@/components/context/ToastContext";
 import CodeFixer from "@/lib/models/functions/code-rewrite";
 
 const AICodeFix = ({
@@ -16,6 +17,7 @@ const AICodeFix = ({
   );
   const [loading, setLoading] = useState<boolean>(false);
   const { currentFile, currentIssues } = useRepoContext();
+  const { showSuccess, showError, showInfo } = useToast();
 
   const cacheKey = useMemo(
     () =>
@@ -35,6 +37,7 @@ const AICodeFix = ({
     if (currentStatus === "corrected") {
       setCurrentStatus("default");
       changeCodeContent("old", "");
+      showInfo("Reverted to Original", "Showing original code");
       setLoading(false);
       return;
     }
@@ -46,6 +49,10 @@ const AICodeFix = ({
         console.log("Using cached corrected code");
         setCurrentStatus("corrected");
         changeCodeContent("new", cachedCode);
+        showSuccess(
+          "Code Fixed (Cached)",
+          "Applied previously generated code fixes"
+        );
         setLoading(false);
         return;
       }
@@ -60,9 +67,21 @@ const AICodeFix = ({
         correctedCodeCacheRef.current.set(cacheKey, response.fixedCode);
         setCurrentStatus("corrected");
         changeCodeContent("new", response.fixedCode);
+        showSuccess(
+          "Code Fixed Successfully!",
+          `Fixed ${currentIssues.length} issue${
+            currentIssues.length !== 1 ? "s" : ""
+          } using AI`
+        );
+      } else {
+        showError("Code Fix Failed", "Failed to generate code fixes");
       }
     } catch (error) {
       console.error("Error getting code rewrite:", error);
+      showError(
+        "Code Fix Error",
+        "An unexpected error occurred while fixing the code"
+      );
     } finally {
       setLoading(false);
     }

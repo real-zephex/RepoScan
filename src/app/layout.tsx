@@ -4,6 +4,7 @@ import { Space_Mono } from "next/font/google";
 
 import Navbar from "@/components/ui/custom-ui/navbar";
 import { RepoProvider } from "@/components/context/RepositoryContext";
+import { ToastProvider } from "@/components/context/ToastContext";
 
 const spaceMono = Space_Mono({
   variable: "--font-space-mono",
@@ -56,12 +57,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${spaceMono.className}  antialiased`}>
-        <RepoProvider>
-          <div className="flex flex-col items-center w-full">
-            <Navbar />
-            {children}
-          </div>
-        </RepoProvider>
+        <ToastProvider>
+          <RepoProvider>
+            <div className="flex flex-col items-center w-full">
+              <Navbar />
+              {children}
+            </div>
+          </RepoProvider>
+        </ToastProvider>
       </body>
     </html>
   );
