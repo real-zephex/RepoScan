@@ -6,7 +6,6 @@ import React, {
   useState,
   ReactNode,
   useCallback,
-  useEffect,
 } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react";

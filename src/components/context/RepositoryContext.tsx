@@ -12,7 +12,6 @@ import React, {
   useState,
   ReactNode,
   useMemo,
-  useEffect,
 } from "react";
 import { useToast } from "./ToastContext";
 
